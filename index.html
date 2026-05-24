@@ -1,0 +1,197 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.app{background:#1a1a1a;min-height:100vh;padding:16px;font-family:system-ui,sans-serif;color:#fff}
+.header{text-align:center;padding:8px 0 12px}
+.header img{max-width:260px;width:100%;height:auto}
+.subtitle{color:#aaa;font-size:13px;margin-top:4px}
+.main{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start;margin-top:12px}
+.wheel-col{display:flex;flex-direction:column;align-items:center;gap:14px;flex:1;min-width:260px;max-width:400px}
+.canvas-wrap{position:relative;width:100%;max-width:360px}
+canvas{display:block;width:100%;border-radius:50%}
+.pointer{position:absolute;top:50%;right:-16px;transform:translateY(-50%);width:0;height:0;border-top:16px solid transparent;border-bottom:16px solid transparent;border-right:28px solid #F97316}
+.spin-btn{background:#F97316;color:#fff;border:none;border-radius:50px;padding:13px 32px;font-size:15px;font-weight:700;cursor:pointer;width:100%;max-width:300px;transition:transform .1s,background .2s}
+.spin-btn:hover{background:#ea6c0a}
+.spin-btn:active{transform:scale(0.97)}
+.spin-btn:disabled{background:#555;cursor:not-allowed}
+.panel{background:#2a2a2a;border-radius:14px;padding:16px;width:100%;max-width:300px;flex:0 0 auto}
+.panel-title{font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.add-row{display:flex;gap:6px;margin-bottom:12px}
+.add-row input[type=text]{flex:1;background:#1a1a1a;border:1px solid #444;border-radius:8px;color:#fff;padding:7px 10px;font-size:12px;outline:none}
+.add-row input[type=text]:focus{border-color:#F97316}
+.add-row input[type=color]{width:34px;height:34px;border:none;border-radius:6px;cursor:pointer;padding:2px;background:#1a1a1a}
+.add-btn{background:#F97316;border:none;border-radius:8px;color:#fff;width:34px;height:34px;font-size:18px;font-weight:700;cursor:pointer;flex-shrink:0}
+.prize-list{display:flex;flex-direction:column;gap:5px;max-height:300px;overflow-y:auto}
+.prize-item{display:flex;align-items:center;gap:8px;background:#1a1a1a;border-radius:8px;padding:6px 8px}
+.color-btn{width:22px;height:22px;border-radius:50%;flex-shrink:0;cursor:pointer;border:2px solid rgba(255,255,255,0.3);position:relative;overflow:hidden}
+.color-btn input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:none;padding:0}
+.prize-name-input{flex:1;background:transparent;border:none;color:#ddd;font-size:12px;outline:none;width:100%}
+.prize-name-input:focus{border-bottom:1px solid #F97316}
+.del-btn{background:none;border:none;color:#666;cursor:pointer;font-size:14px;padding:0 2px;line-height:1;flex-shrink:0}
+.del-btn:hover{color:#ff5555}
+.hint{font-size:11px;color:#666;margin-top:8px;text-align:center}
+.result-overlay{display:none;position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px}
+.result-overlay.show{display:flex}
+.result-text{font-size:12px;color:#aaa;margin-bottom:4px}
+.result-prize{font-size:18px;font-weight:700;word-break:break-word;margin-bottom:2px}
+.result-emoji{font-size:30px;margin-bottom:6px}
+.result-close{margin-top:10px;background:#F97316;border:none;border-radius:20px;color:#fff;padding:6px 18px;font-size:12px;cursor:pointer;font-weight:600}
+@media(max-width:500px){.main{flex-direction:column;align-items:center}.panel{max-width:100%}}
+</style>
+
+<div class="app">
+  <div class="header">
+    <img src="data:image/jpeg;base64,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" alt="Marroquín Importadora">
+    <div class="subtitle">Gira la ruleta y descubre tu premio</div>
+  </div>
+
+  <div class="main">
+    <div class="wheel-col">
+      <div class="canvas-wrap">
+        <canvas id="wheelCanvas" width="380" height="380"></canvas>
+        <div class="pointer"></div>
+        <div class="result-overlay" id="resultOverlay">
+          <div class="result-emoji">🎉</div>
+          <div class="result-text">¡Felicidades! Ganaste:</div>
+          <div class="result-prize" id="resultPrize"></div>
+          <button class="result-close" onclick="closeResult()">Seguir girando</button>
+        </div>
+      </div>
+      <button class="spin-btn" id="spinBtn" onclick="spin()">&#9654; Girar la ruleta</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <i class="ti ti-gift" style="font-size:16px;color:#F97316" aria-hidden="true"></i>
+        Premios <span id="prizeCount" style="color:#F97316;margin-left:4px"></span>
+      </div>
+      <div class="add-row">
+        <input type="color" id="newColor" value="#F97316" title="Color">
+        <input type="text" id="newName" placeholder="Nombre del premio..." maxlength="22">
+        <button class="add-btn" onclick="addPrize()" aria-label="Agregar">+</button>
+      </div>
+      <div class="prize-list" id="prizeList"></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let prizes=[
+  {name:'100 Bs',color:'#F97316'},
+  {name:'Descuento 10%',color:'#3B82F6'},
+  {name:'Premio sorpresa',color:'#22C55E'},
+  {name:'Otra vuelta',color:'#EF4444'},
+  {name:'50 Bs',color:'#A855F7'},
+  {name:'Vale gratis',color:'#EAB308'},
+  {name:'Sin premio',color:'#EC4899'},
+  {name:'Mega premio',color:'#06B6D4'},
+];
+let spinning=false;
+let currentAngle=0;
+
+const canvas=document.getElementById('wheelCanvas');
+const ctx=canvas.getContext('2d');
+const W=380,H=380,cx=190,cy=190,R=175;
+
+function drawWheel(){
+  ctx.clearRect(0,0,W,H);
+  const n=prizes.length;
+  if(n===0){ctx.fillStyle='#333';ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();return;}
+  const arc=2*Math.PI/n;
+  for(let i=0;i<n;i++){
+    const start=currentAngle+i*arc;
+    const end=start+arc;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,start,end);ctx.closePath();
+    ctx.fillStyle=prizes[i].color;ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(start+arc/2);ctx.textAlign='right';
+    ctx.fillStyle='#fff';
+    ctx.shadowColor='rgba(0,0,0,0.7)';ctx.shadowBlur=3;
+    const fs=prizes[i].name.length>14?10:prizes[i].name.length>10?11:13;
+    ctx.font=`bold ${fs}px system-ui,sans-serif`;
+    ctx.fillText(prizes[i].name,R-8,4);
+    ctx.restore();
+  }
+  ctx.beginPath();ctx.arc(cx,cy,20,0,Math.PI*2);
+  ctx.fillStyle='#1a1a1a';ctx.fill();
+  ctx.strokeStyle='#F97316';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.fillStyle='#F97316';ctx.font='bold 14px system-ui';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('★',cx,cy);
+}
+
+function renderList(){
+  const list=document.getElementById('prizeList');
+  document.getElementById('prizeCount').textContent=`(${prizes.length})`;
+  list.innerHTML=prizes.map((p,i)=>`
+    <div class="prize-item">
+      <div class="color-btn" style="background:${p.color}" title="Cambiar color">
+        <input type="color" value="${p.color}" onchange="changeColor(${i},this.value)">
+      </div>
+      <input class="prize-name-input" value="${p.name}" maxlength="22"
+        onchange="changeName(${i},this.value)" onblur="changeName(${i},this.value)">
+      <button class="del-btn" onclick="removePrize(${i})" aria-label="Eliminar">✕</button>
+    </div>
+  `).join('');
+  const hint=document.getElementById('hint');
+  hint.textContent=prizes.length<2?'Mínimo 2 premios para girar.':prizes.length>=16?'Máximo 16 premios.':'';
+  drawWheel();
+}
+
+function addPrize(){
+  const name=document.getElementById('newName').value.trim();
+  const color=document.getElementById('newColor').value;
+  if(!name||prizes.length>=16)return;
+  prizes.push({name,color});
+  document.getElementById('newName').value='';
+  renderList();
+}
+
+function removePrize(i){if(prizes.length<=1)return;prizes.splice(i,1);renderList();}
+function changeColor(i,v){prizes[i].color=v;renderList();}
+function changeName(i,v){if(v.trim())prizes[i].name=v.trim();renderList();}
+
+document.getElementById('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addPrize();});
+
+function spin(){
+  if(spinning||prizes.length<2)return;
+  spinning=true;
+  document.getElementById('spinBtn').disabled=true;
+  document.getElementById('spinBtn').textContent='Girando...';
+  const extra=Math.random()*360;
+  const spins=5+Math.floor(Math.random()*5);
+  const totalRad=(spins*360+extra)*(Math.PI/180);
+  const duration=4000+Math.random()*1500;
+  const start=performance.now();
+  const startAngle=currentAngle;
+  function ease(t){return t<1?1-Math.pow(1-t,3):1;}
+  function frame(now){
+    const t=Math.min((now-start)/duration,1);
+    currentAngle=startAngle+totalRad*ease(t);
+    drawWheel();
+    if(t<1){requestAnimationFrame(frame);}
+    else{
+      currentAngle=currentAngle%(2*Math.PI);
+      spinning=false;
+      document.getElementById('spinBtn').disabled=false;
+      document.getElementById('spinBtn').textContent='▶ Girar la ruleta';
+      showResult();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function showResult(){
+  const n=prizes.length;
+  const arc=2*Math.PI/n;
+  const ptr=3*Math.PI/2;
+  let a=((ptr-currentAngle)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  const idx=Math.floor(a/arc)%n;
+  document.getElementById('resultPrize').textContent=prizes[idx].name;
+  document.getElementById('resultPrize').style.color=prizes[idx].color;
+  document.getElementById('resultOverlay').classList.add('show');
+}
+
+function closeResult(){document.getElementById('resultOverlay').classList.remove('show');}
+renderList();
+</script>
